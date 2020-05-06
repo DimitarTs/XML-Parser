@@ -1,4 +1,4 @@
-#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS //So I can use strcpy
 #include <iostream>
 using namespace std;
 
