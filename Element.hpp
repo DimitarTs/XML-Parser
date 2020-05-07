@@ -10,14 +10,19 @@ class Element
 	Attribute* attributes;
 	Element* parent;
 	Element** children;
-
+	void concatToID(const char*);
 	void copyFrom(const Element& other);
 public:
+	friend void assignUniqueIDs(Element*, int);
+	friend void readFromFile(const char*, Element*);
+	friend void addNewElement(Element*&, Element, int&);
 	Element();
 	Element(const Element& other);
 	Element& operator=(const Element& other);
 	~Element();
 	bool operator!=(Element other);
+	void setID(const char*);
+	const char* getID();
 	void setTag(const char*);
 	void setText(const char*);
 	void removeText();
@@ -27,6 +32,21 @@ public:
 	void addAttribute(Attribute);
 	void addAttribute(const char*, const char*);
 };
+
+void Element::concatToID(const char* suffix)
+{
+	char* newID = new char[strlen(id) + strlen(suffix) + 1];
+	int i;
+	for (i = 0; id[i] != '\0'; i++)
+		newID[i] = id[i];
+	for (int j = 0; suffix[j] != '\0'; j++, i++)
+	{
+		newID[i] = suffix[j];
+	}
+	newID[strlen(id) + strlen(suffix)] = '\0';
+	delete[] id;
+	id = newID;
+}
 
 void Element::copyFrom(const Element& other)
 {
@@ -117,6 +137,17 @@ bool Element::operator!=(Element other)
 	return false;
 }
 
+void Element::setID(const char* id)
+{
+	if (this->id != nullptr)
+		delete[] this->id;
+	this->id = new char[strlen(id) + 1];
+	strcpy(this->id, id);
+}
+const char* Element::getID()
+{
+	return id;
+}
 void Element::setTag(const char* tag)
 {
 	if (this->tag != nullptr)
@@ -203,11 +234,12 @@ void Element::addAttribute(const char* name, const char* value)
 		addAttribute(attribute);
 }
 
-void Element::print(int numberOfIndentations)
+void Element::print(int numberOfIndentations = 0)
 {
 	for (int i = 0; i < numberOfIndentations; i++)
 		cout << "     ";
 	cout << "<" << tag;
+	cout << " id=" << '"' << id << '"';
 	for (int i = 0; i < numberOfAttributes; i++)
 	{
 		cout << " ";
@@ -234,4 +266,111 @@ void Element::print(int numberOfIndentations)
 		for (int i = 0; i < numberOfIndentations; i++)
 			cout << "     ";
 	cout << "</" << tag << ">\n";
+}
+
+void assignUniqueIDs(Element* arr, int size)
+{
+	for (int i = 0; i < size; i++)
+	{
+		if (!strcmp(arr[i].id, "unknown"))
+		{
+			char startID[2] = "1";
+			startID[0] = ((i+1) % 10) + '0';
+			arr[i].setID(startID);
+			bool isIdentical;
+			do
+			{
+				isIdentical = true;
+				for (int k = 0; k < size and isIdentical; k++)
+				{
+					if (k != i && !strcmp(arr[k].id, arr[i].id))
+					{
+						isIdentical = false;
+					}
+				}
+				if (!isIdentical)
+				{
+					char addition[2] = "2";
+					addition[0] = (i % 10) + '0';
+					arr[i].concatToID(addition);
+				}
+			} while (!isIdentical);
+		}
+		else
+		{
+			int numberOfReiterations = 1;
+			for (int j = i + 1; j < size; j++)
+			{
+				if (!strcmp(arr[i].id, arr[j].id))
+				{
+					bool isIdentical = false;
+					numberOfReiterations++;
+					while (!isIdentical)
+					{
+						char addition[2] = "2";
+						addition[0] = (numberOfReiterations % 10) + '0';
+						arr[j].concatToID(addition);
+						isIdentical = true;
+						for (int k = 0; k < size and isIdentical; k++)
+						{
+							if (k != j && !strcmp(arr[k].id, arr[j].id))
+							{
+								isIdentical = false;
+							}
+						}
+					}
+				}
+			}
+			if (numberOfReiterations > 1)
+			{
+				char addition[2] = "1";
+				arr[i].concatToID(addition);
+			}
+		}
+	}
+}
+
+void addNewElement(Element*& arr, Element extraElement, int& size)
+{
+	/*Element* newArr = new Element[size + 1];
+	for (int i = 0; i < size; i++)
+	{
+		if (arr[i].parent != nullptr)
+		{
+			arr[i].parent->removeChild(arr[i]);
+			arr[i].parent->addChild(newArr[i]);
+		}
+		newArr[i] = arr[i];
+	}
+	newArr[size - 1] = extraElement;
+	if (size > 0)
+		delete[] arr;
+	size++;
+	arr = newArr;*/
+}
+
+void readFromFile(const char* filename, Element* arr)
+{
+	ifstream f;
+	f.open(filename);
+	if (f.fail())
+	{
+		cout << "Error - file not found\n";
+		return;
+	}
+	char check;
+	f.get(check);
+	if (check != '<')
+	{
+		cout << "Error - invalid file\n";
+	}
+	char rootTag[64];
+	for (int i = 0; rootTag[i] != ' ' && i < 64; i++)
+	{
+		f.get(rootTag[i]);
+		if (rootTag[i] == ' ')
+		{
+			rootTag[i] = '\0';
+		}
+	}
 }
