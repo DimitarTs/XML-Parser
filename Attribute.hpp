@@ -14,6 +14,7 @@ public:
 	const char* getName();
 	const char* getValue();
 	void print();
+	void printToFile(ofstream&);
 };
 void Attribute::copyFrom(const Attribute& other)
 {
@@ -87,4 +88,9 @@ const char* Attribute::getValue()
 void Attribute::print()
 {
 	cout << name << "=" << '"' << value << '"';
+}
+
+void Attribute::printToFile(ofstream& f)
+{
+	f << name << "=" << '"' << value << '"';
 }
