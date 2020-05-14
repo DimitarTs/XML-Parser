@@ -9,15 +9,17 @@ const int COMMAND_LIMIT = 64;
 const int ID_LIMIT = 64;
 const int KEY_LIMIT = 64;
 const int VALUE_LIMIT = 64;
+const int TEXT_LIMIT = 256;
+const int TAG_LIMIT = 64;
 
-void extractWord(char* source, char* destination, int& startIndex, int limit, bool keepStartIndex = false, char divider = ' ')
+void extractWord(const char* source, char* destination, int& startIndex, int limit, bool keepStartIndex = false, char divider = ' ')
 {
 	int index = startIndex;
-	while (source[index] == ' ' or source[index] == divider) index++;
+	while (source[index] == ' ' or source[index] == 9 or source[index] == divider) index++;
 	bool endOfWord = false;
 	for (int i = 0; i < limit and !endOfWord; i++)
 	{
-		if (source[index] == divider or source[index] == '\0' or source[index] == ' ')
+		if (source[index] == divider or source[index] == '\0' or source[index] == ' ' or source[index] == 9)
 		{
 			endOfWord = true;
 			destination[i] = '\0';
@@ -33,6 +35,18 @@ void extractWord(char* source, char* destination, int& startIndex, int limit, bo
 	if (!keepStartIndex)
 		startIndex = index;
 	return;
+}
+
+int extractNumber(char* source, int& startIndex, bool keepStartIndex = false)
+{
+	int result = 0;
+	int index = startIndex;
+	while (source[index] == ' ') index++;
+	while (source[index] >= '0' and source[index] <= '9')
+		result = 10 * result + source[index++] - '0';
+	if (!keepStartIndex)
+		startIndex = index;
+	return result;
 }
 
 #include "Commands.hpp"
@@ -58,6 +72,11 @@ int main()
 		}
 		else if (!strcmp(command, "open"))
 		{
+			if (size > 0)
+			{
+				cout << "There is a currently open file, please use 'close' before opening a different one\n";
+				continue;
+			}
 			while (inputLine[index] == ' ') index++;
 			if (inputLine[index] == '"')
 				index++;
@@ -82,6 +101,9 @@ int main()
 			else
 			{
 				arr[0]->print();
+				//cout << "Size: " << size << endl;
+				/*for (int i = 0; i < size; i++)
+					arr[i]->print();*/
 			}
 		}
 		else if (!strcmp(command, "close"))
@@ -173,12 +195,171 @@ int main()
 			Element* found = findElementById(arr, size, id);
 			if (found != nullptr)
 			{
-				//insert some cool code
+				if (!found->setAttributeValue(key, value))
+				{
+					if (!strcmp(key, "tag"))
+						found->setTag(value);
+					else if (!strcmp(key, "id"))
+					{
+						found->setID(value);
+						assignUniqueIDs(arr, size);
+					}
+					else
+						found->addAttribute(key, value);
+				}
+				cout << "Successfully set " << key << " of " << id << " to " << value << endl;
 			}
 			else
 			{
 				cout << "There is no element with ID = " << id << endl;
 			}
+		}
+		else if (!strcmp(command, "children"))
+		{
+			char id[ID_LIMIT];
+			extractWord(inputLine, id, index, ID_LIMIT);
+			Element* found = findElementById(arr, size, id);
+			if (found != nullptr)
+			{
+				int numberOfChildren = found->getNumberOfChildren();
+				Element**const children = found->getChildren();
+				const Attribute* attributes;
+				for (int i = 0; i < numberOfChildren; i++)
+				{
+					int numberOfAttributes = children[i]->getNumberOfAttributes();
+					attributes = children[i]->getAttributes();
+					cout << children[i]->getTag() << ":";
+					for (int i = 0; i < numberOfAttributes; i++)
+					{
+						cout << " ";
+						attributes[i].print();
+					}
+					cout << endl;
+				}
+			}
+			else
+			{
+				cout << "There is no element with ID = " << id << endl;
+			}
+		}
+		else if (!strcmp(command, "child"))
+		{
+			char id[ID_LIMIT];
+			extractWord(inputLine, id, index, ID_LIMIT);
+			Element* found = findElementById(arr, size, id);
+			if (found != nullptr)
+			{
+				int n = extractNumber(inputLine, index);
+				Element** const children = found->getChildren();
+				if (n > 0 and n <= found->getNumberOfChildren())
+				{
+					children[n - 1]->print();
+				}
+				else
+				{
+					cout << "Child number can range from 1 to " << found->getNumberOfChildren() << endl;
+				}
+			}
+			else
+			{
+				cout << "There is no element with ID = " << id << endl;
+			}
+		}
+		else if (!strcmp(command, "text"))
+		{
+			char id[ID_LIMIT];
+			extractWord(inputLine, id, index, ID_LIMIT);
+			Element* found = findElementById(arr, size, id);
+			if (found != nullptr)
+			{
+				char text[TEXT_LIMIT];
+				while (inputLine[index] == ' ') index++;
+				int textIndex = 0;
+				while (inputLine[index - 1] != '\0' and textIndex < TEXT_LIMIT)
+					text[textIndex++] = inputLine[index++];
+				text[TEXT_LIMIT - 1] = '\0';
+				if (!strcmp(text, ""))
+				{
+					if (found->getText() != nullptr)
+						cout << found->getText() << endl;
+					else
+						cout << found->getTag() << " has no text\n";
+				}
+				else
+				{
+					found->setText(text);
+					cout << "Successfully set the text of " << found->getTag() << endl;
+				}
+			}
+			else
+			{
+				cout << "There is no element with ID = " << id << endl;
+			}
+		}
+		else if (!strcmp(command, "removetext"))
+		{
+			char id[ID_LIMIT];
+			extractWord(inputLine, id, index, ID_LIMIT);
+			Element* found = findElementById(arr, size, id);
+			if (found != nullptr)
+			{
+				found->removeText();
+				cout << "Successfully removed the text of " << found->getTag() << endl;
+			}
+			else
+			{
+				cout << "There is no element with ID = " << id << endl;
+			}
+		}
+		else if (!strcmp(command, "delete"))
+		{
+			char id[ID_LIMIT];
+			extractWord(inputLine, id, index, ID_LIMIT);
+			char key[KEY_LIMIT];
+			extractWord(inputLine, key, index, KEY_LIMIT);
+			Element* found = findElementById(arr, size, id);
+			if (found != nullptr)
+			{
+				if (strcmp(key, "")) 
+				{
+					if (found->removeAttribute(key))
+						cout << "Successfully removed " << key << " from " << id << endl;
+					else cout << id << " doesn't contain the attribute " << key << endl;
+				}
+				else
+				{
+					if (removeElement(arr, found, size))
+						cout << "Successfully removed element and all of it's decendants\n";
+					else
+						cout << "Cannot delete root element\n";
+				}
+			}
+			else
+			{
+				cout << "There is no element with ID = " << id << endl;
+			}
+		}
+		else if (!strcmp(command, "newchild"))
+		{
+			char id[ID_LIMIT];
+			extractWord(inputLine, id, index, ID_LIMIT);
+			Element* found = findElementById(arr, size, id);
+			if (found != nullptr)
+			{
+				Element empty;
+				addNewElement(arr, empty, size);
+				found->addChild(*arr[size-1]);
+				assignUniqueIDs(arr, size);
+				cout << "Successfully added a new child to " << found->getTag() << endl;
+			}
+			else
+			{
+				cout << "There is no element with ID = " << id << endl;
+			}
+		}
+		else if (strcmp(command, "exit"))
+		{
+			cout << "Unrecognized command, use 'help' for list of supported commands\n";
 		}
 	} while (strcmp(command, "exit"));
 	cout << "Exiting the program...\n";
