@@ -11,6 +11,20 @@ const int KEY_LIMIT = 64;
 const int VALUE_LIMIT = 64;
 const int TEXT_LIMIT = 256;
 const int TAG_LIMIT = 64;
+const int XPATH_LIMIT = 256;
+
+int strToInt(const char* source, int& index, bool updateIndex = true)
+{
+	int res = 0, i = index;
+	while (source[i] == ' ') i++;
+	while (source[i] >= '0' and source[i] <= '9')
+	{
+		res = 10 * res + (source[i++] - '0');
+	}
+	if (updateIndex)
+		index = i;
+	return res;
+}
 
 void extractWord(const char* source, char* destination, int& startIndex, int limit, bool keepStartIndex = false, char divider = ' ')
 {
@@ -51,6 +65,7 @@ int extractNumber(char* source, int& startIndex, bool keepStartIndex = false)
 
 #include "Commands.hpp"
 #include "Element.hpp"
+#include "XPath.hpp"
 
 int main()
 {
@@ -356,6 +371,14 @@ int main()
 			{
 				cout << "There is no element with ID = " << id << endl;
 			}
+		}
+		else if (!strcmp(command, "xpath"))
+		{
+			char xpathInStr[XPATH_LIMIT];
+			extractWord(inputLine, xpathInStr, index, XPATH_LIMIT);
+			XPath xpath;
+			xpath.interprete(xpathInStr);
+			xpath.execute(*arr[0]);
 		}
 		else if (strcmp(command, "exit"))
 		{

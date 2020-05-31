@@ -40,9 +40,10 @@ public:
 	void addAttribute(Attribute);
 	void addAttribute(const char*, const char*);
 	bool removeAttribute(const char*);
-	const char* getAttributeValue(const char*);
+	const char* getAttributeValue(const char*) const;
 	bool setAttributeValue(const char*, const char*);
 	Element** const getChildren() const;
+	const Element* getParent() const;
 	int getNumberOfChildren() const;
 	const Attribute* getAttributes() const;
 	int getNumberOfAttributes() const;
@@ -400,7 +401,7 @@ void Element::printToFile(ofstream& f, int numberOfIndentations = 0, bool hideID
 	f << "</" << tag << ">\n";
 }
 
-const char* Element::getAttributeValue(const char* key)
+const char* Element::getAttributeValue(const char* key) const
 {
 	for(int i = 0; i< numberOfAttributes; i++)
 		if (!strcmp(attributes[i].getName(), key))
@@ -424,6 +425,11 @@ bool Element::setAttributeValue(const char* key, const char* value)
 Element**const Element::getChildren() const
 {
 	return children;
+}
+
+const Element* Element::getParent() const
+{
+	return parent;
 }
 
 int Element::getNumberOfChildren() const

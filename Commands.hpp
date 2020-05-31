@@ -19,7 +19,7 @@ void help()
 	cout << "delete <id>             Deletes element with id = <id> and all of its decendants\n";
 	cout << "delete <id> <key>       deletes attribute <key> of element with id = <id>\n";
 	cout << "newchild <id>           creates a new, blank child of element with id = <id>\n";
-	cout << "xpath <id> <XPath>      [placeholder]\n";
+	cout << "xpath <XPath>      [placeholder]\n";
 	// Project specific commands:
 }
 
