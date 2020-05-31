@@ -13,19 +13,6 @@ const int TEXT_LIMIT = 256;
 const int TAG_LIMIT = 64;
 const int XPATH_LIMIT = 256;
 
-int strToInt(const char* source, int& index, bool updateIndex = true)
-{
-	int res = 0, i = index;
-	while (source[i] == ' ') i++;
-	while (source[i] >= '0' and source[i] <= '9')
-	{
-		res = 10 * res + (source[i++] - '0');
-	}
-	if (updateIndex)
-		index = i;
-	return res;
-}
-
 void extractWord(const char* source, char* destination, int& startIndex, int limit, bool keepStartIndex = false, char divider = ' ')
 {
 	int index = startIndex;
@@ -51,7 +38,7 @@ void extractWord(const char* source, char* destination, int& startIndex, int lim
 	return;
 }
 
-int extractNumber(char* source, int& startIndex, bool keepStartIndex = false)
+int extractNumber(const char* source, int& startIndex, bool keepStartIndex = false)
 {
 	int result = 0;
 	int index = startIndex;
@@ -69,12 +56,11 @@ int extractNumber(char* source, int& startIndex, bool keepStartIndex = false)
 
 int main()
 {
-	int size = 0;
-	Element** arr = nullptr;
-
+	Element* root = nullptr;
 	char inputLine[INPUT_LIMIT];
 	char command[COMMAND_LIMIT];
 	char filename[FILENAME_LIMIT];
+	bool openFile = false;
 	do 
 	{
 		cout << "> ";
@@ -87,9 +73,9 @@ int main()
 		}
 		else if (!strcmp(command, "open"))
 		{
-			if (size > 0)
+			if (root != nullptr)
 			{
-				cout << "There is a currently open file, please use 'close' before opening a different one\n";
+				cout << "There is a currently stored data, please use 'close' before opening a file\n";
 				continue;
 			}
 			while (inputLine[index] == ' ') index++;
@@ -103,59 +89,65 @@ int main()
 					filename[i + 1] = '\0';
 				}
 			}
-			if (readFromFile(filename, arr, size))
+			root = new Element;
+			if (root->readFromFile(filename))
 			{
 				cout << "Successfully opened " << filename << endl;
-				assignUniqueIDs(arr, size);
+				openFile = true;
+				ListOfIDs list;
+				root->assignUniqueIDs(list);
+			}
+			else
+			{
+				delete root;
+				root = nullptr;
+				cout << "Failed to open " << filename << endl;
 			}
 		}
 		else if (!strcmp(command, "print"))
 		{
-			if (size == 0)
+			if (root == nullptr)
 				cout << "No currently stored data\n";
 			else
 			{
-				arr[0]->print();
-				//cout << "Size: " << size << endl;
-				/*for (int i = 0; i < size; i++)
-					arr[i]->print();*/
+				root->print();
 			}
 		}
 		else if (!strcmp(command, "close"))
 		{
-			if (size == 0)
+			if (root == nullptr)
 			{
-				cout << "No currently open file\n";
+				cout << "No currently stored data\n";
 			}
 			else
 			{
-				for (int i = 0; i < size; i++)
+				delete root;
+				root = nullptr;
+				if (openFile)
 				{
-					delete arr[i];
+					cout << "Successfully closed " << filename << endl;
+					openFile = false;
 				}
-				delete[] arr;
-				arr = nullptr;
-				size = 0;
-				cout << "Successfully closed " << filename << endl;
+				else cout << "Successfully deleted all stored data\n";
 			}
 		}
 		else if (!strcmp(command, "save"))
 		{
-			if (size == 0)
+			if (!openFile)
 			{
 				cout << "No currently open file\n";
 			}
 			else
 			{
-				if (writeToFile(filename, arr, size))
+				if (root->writeToFile(filename))
 					cout << "Successfully saved " << filename << endl;
 			}
 		}
 		else if (!strcmp(command, "saveas"))
 		{
-			if (size == 0)
+			if (root == nullptr)
 			{
-				cout << "No currently open file\n";
+				cout << "No currently stored data\n";
 			}
 			else
 			{
@@ -171,7 +163,7 @@ int main()
 						newFilename[i + 1] = '\0';
 					}
 				}
-				if (writeToFile(newFilename, arr, size))
+				if (root->writeToFile(newFilename))
 					cout << "Successfully saved " << newFilename << endl;
 				else
 					cout << "Error, file wasn't saved\n";
@@ -183,7 +175,7 @@ int main()
 			extractWord(inputLine, id, index, ID_LIMIT);
 			char key[KEY_LIMIT];
 			extractWord(inputLine, key, index, KEY_LIMIT);
-			Element* found = findElementById(arr, size, id);
+			Element* found = root->findElementById(id);
 			if (found != nullptr)
 			{
 				const char* value = found->getAttributeValue(key);
@@ -207,7 +199,7 @@ int main()
 			extractWord(inputLine, key, index, KEY_LIMIT);
 			char value[VALUE_LIMIT];
 			extractWord(inputLine, value, index, VALUE_LIMIT);
-			Element* found = findElementById(arr, size, id);
+			Element* found = root->findElementById(id);
 			if (found != nullptr)
 			{
 				if (!found->setAttributeValue(key, value))
@@ -217,7 +209,8 @@ int main()
 					else if (!strcmp(key, "id"))
 					{
 						found->setID(value);
-						assignUniqueIDs(arr, size);
+						ListOfIDs list;
+						root->assignUniqueIDs(list);
 					}
 					else
 						found->addAttribute(key, value);
@@ -233,7 +226,7 @@ int main()
 		{
 			char id[ID_LIMIT];
 			extractWord(inputLine, id, index, ID_LIMIT);
-			Element* found = findElementById(arr, size, id);
+			Element* found = root->findElementById(id);
 			if (found != nullptr)
 			{
 				int numberOfChildren = found->getNumberOfChildren();
@@ -261,7 +254,7 @@ int main()
 		{
 			char id[ID_LIMIT];
 			extractWord(inputLine, id, index, ID_LIMIT);
-			Element* found = findElementById(arr, size, id);
+			Element* found = root->findElementById(id);
 			if (found != nullptr)
 			{
 				int n = extractNumber(inputLine, index);
@@ -284,7 +277,7 @@ int main()
 		{
 			char id[ID_LIMIT];
 			extractWord(inputLine, id, index, ID_LIMIT);
-			Element* found = findElementById(arr, size, id);
+			Element* found = root->findElementById(id);
 			if (found != nullptr)
 			{
 				char text[TEXT_LIMIT];
@@ -315,7 +308,7 @@ int main()
 		{
 			char id[ID_LIMIT];
 			extractWord(inputLine, id, index, ID_LIMIT);
-			Element* found = findElementById(arr, size, id);
+			Element* found = root->findElementById(id);
 			if (found != nullptr)
 			{
 				found->removeText();
@@ -332,7 +325,7 @@ int main()
 			extractWord(inputLine, id, index, ID_LIMIT);
 			char key[KEY_LIMIT];
 			extractWord(inputLine, key, index, KEY_LIMIT);
-			Element* found = findElementById(arr, size, id);
+			Element* found = root->findElementById(id);
 			if (found != nullptr)
 			{
 				if (strcmp(key, "")) 
@@ -343,8 +336,11 @@ int main()
 				}
 				else
 				{
-					if (removeElement(arr, found, size))
+					if (found->getParent() != nullptr)
+					{
+						found->getParent()->removeChild(*found);
 						cout << "Successfully removed element and all of it's decendants\n";
+					}
 					else
 						cout << "Cannot delete root element\n";
 				}
@@ -358,13 +354,13 @@ int main()
 		{
 			char id[ID_LIMIT];
 			extractWord(inputLine, id, index, ID_LIMIT);
-			Element* found = findElementById(arr, size, id);
+			Element* found = root->findElementById(id);
 			if (found != nullptr)
 			{
 				Element empty;
-				addNewElement(arr, empty, size);
-				found->addChild(*arr[size-1]);
-				assignUniqueIDs(arr, size);
+				found->addChild(empty);
+				ListOfIDs list;
+				root->assignUniqueIDs(list);
 				cout << "Successfully added a new child to " << found->getTag() << endl;
 			}
 			else
@@ -372,13 +368,44 @@ int main()
 				cout << "There is no element with ID = " << id << endl;
 			}
 		}
+		else if (!strcmp(command, "newroot"))
+		{
+			if (root == nullptr) 
+			{
+				root = new Element;
+				ListOfIDs list;
+				root->assignUniqueIDs(list);
+				cout << "Successfully created new root\n";
+			}
+			else
+			{
+				cout << "There already is a root. Close file or delete all data to create new\n";
+			}
+		}
 		else if (!strcmp(command, "xpath"))
 		{
-			char xpathInStr[XPATH_LIMIT];
-			extractWord(inputLine, xpathInStr, index, XPATH_LIMIT);
-			XPath xpath;
-			xpath.interprete(xpathInStr);
-			xpath.execute(*arr[0]);
+			char id[ID_LIMIT];
+			extractWord(inputLine, id, index, ID_LIMIT);
+			Element* found = root->findElementById(id);
+			if (found != nullptr)
+			{
+				char xpathInStr[XPATH_LIMIT];
+				while (inputLine[index] == ' ')
+					index++;
+				int xpathindex = 0;
+				while (inputLine[index] != '\0' and xpathindex < XPATH_LIMIT - 1)
+				{
+					xpathInStr[xpathindex++] = inputLine[index++];
+				}
+				xpathInStr[xpathindex] = '\0';
+				XPath xpath;
+				xpath.interprete(xpathInStr);
+				xpath.execute(*found);
+			}
+			else
+			{
+				cout << "There is no element with ID = " << id << endl;
+			}
 		}
 		else if (strcmp(command, "exit"))
 		{
@@ -386,9 +413,5 @@ int main()
 		}
 	} while (strcmp(command, "exit"));
 	cout << "Exiting the program...\n";
-	for (int i = 0; i < size; i++)
-	{
-		delete arr[i];
-	}
-	delete[] arr;
+	delete root;
 }

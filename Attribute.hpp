@@ -11,8 +11,8 @@ public:
 	Attribute& operator=(const Attribute& other);
 	void setName(const char*);
 	void setValue(const char*);
-	const char* getName();
-	const char* getValue();
+	const char* getName() const;
+	const char* getValue() const;
 	void print() const;
 	void printToFile(ofstream&);
 };
@@ -77,11 +77,11 @@ void Attribute::setValue(const char* value)
 	for (int i = 0; i < valueLen; i++)
 		this->value[i] = value[i];
 }
-const char* Attribute::getName()
+const char* Attribute::getName() const
 {
 	return name;
 }
-const char* Attribute::getValue()
+const char* Attribute::getValue() const
 {
 	return value;
 }

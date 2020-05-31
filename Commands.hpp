@@ -19,33 +19,6 @@ void help()
 	cout << "delete <id>             Deletes element with id = <id> and all of its decendants\n";
 	cout << "delete <id> <key>       deletes attribute <key> of element with id = <id>\n";
 	cout << "newchild <id>           creates a new, blank child of element with id = <id>\n";
-	cout << "xpath <XPath>      [placeholder]\n";
-	// Project specific commands:
+	cout << "newroot                 creates a new, blank root if there is no current root\n";
+	cout << "xpath <id> <XPath>      execute <XPath> starting from element with id = <id>\n\n";
 }
-
-class CommandLine
-{
-	char* line;
-public:
-	CommandLine(): line(nullptr) {}
-	~CommandLine()
-	{
-		if (line != nullptr)
-			delete[] line;
-	}
-	void input()
-	{
-		char temp[INPUT_LIMIT];
-		cin.getline(temp, INPUT_LIMIT);
-		if (line != nullptr)
-			delete[] line;
-		line = new char[strlen(temp) + 1];
-		for (int i = 0; temp[i] != '\0'; i++)
-			line[i] = temp[i];
-		line[strlen(temp)] = '\0';
-	}
-	void execute()
-	{
-
-	}
-};
