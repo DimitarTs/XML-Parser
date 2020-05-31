@@ -15,12 +15,7 @@ public:
 	PredicateIndex(int index);
 
 	Predicate* createNewPredicate() const;
-	void setIndex(int index) 
-	{
-		if (index < 0)
-			index = 0;
-		this->index = index;
-	}
+	void setIndex(int index);
 	int getIndex() const;
 	bool isMetIn(const Element element) const;
 	void print() const;
@@ -36,9 +31,32 @@ int PredicateIndex::getIndex() const
 {
 	return index;
 }
+void PredicateIndex::setIndex(int index)
+{
+	if (index < 0)
+		index = 0;
+	this->index = index;
+}
 bool PredicateIndex::isMetIn(const Element element) const
 {
-	return ((index >= 0) && (element.getParent() != nullptr) && (element.getParent()->getNumberOfChildren() > index) && (*element.getParent()->getChildren()[index] == element));
+	if (index < 0 or element.getParent() == nullptr or element.getParent()->getNumberOfChildren() < index)
+		return false;
+	int count = 0;
+	for (int i = 0; i < element.getParent()->getNumberOfChildren(); i++)
+	{
+		if (!strcmp(element.getParent()->getChildren()[i]->getTag(), element.getTag()))
+		{
+			count++;
+			if (count == index + 1)
+			{
+				return (*element.getParent()->getChildren()[i] == element);
+			}
+			else
+				if (count > index + 1)
+					return false;
+		}
+	}
+	return false;
 }
 void PredicateIndex::print() const
 {
@@ -454,16 +472,6 @@ void XPath::interprete(const char* str)
 void XPath::execute(Element root)
 {
 	int numberOfChildren = root.getNumberOfChildren();
-	/*cout << "looking at " << root.getTag() << " ";
-	if (criteria == nullptr)
-	{
-		cout << " with no criteria\n";
-	}
-	else
-	{
-		criteria->print();
-		cout << endl;
-	}*/
 	for (int i = 0; i < numberOfChildren; i++)
 	{
 		if (!strcmp(tag, root.getChildren()[i]->getTag()))
